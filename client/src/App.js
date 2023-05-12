@@ -33,6 +33,7 @@ function App() {
   }
 
   const deleteTask = async id => {
+    console.log(id)
     const data = await fetch(API_BASE + "/checklist/delete/" + id, {
       method: "DELETE"
     }).then(res => res.json())
@@ -65,8 +66,8 @@ function App() {
       <div className="checklists">
         {tasks.map(task=>(
           <div className={"task " + (task.complete ? "is-complete" : "")}
-           key={task._id} onClick={() => completeTask(task._id)}>
-            <div className="checkbox"></div>
+           key={task._id}>
+            <div className="checkbox" onClick={() => completeTask(task._id)}></div>
             <div className="text">{task.text}</div>
             <div className="delete-task" 
               onClick={() => deleteTask(task._id)}>✕</div>

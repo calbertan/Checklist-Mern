@@ -1,0 +1,18 @@
+GET http://localhost:3001/checklists
+
+###
+
+POST http://localhost:3001/checklist/new
+Content-Type: application/json
+
+{
+  "text": "Test2"
+}
+
+###
+
+DELETE http://localhost:3001/checklist/delete/645e98c82e65c436a8352493
+
+###
+
+GET http://localhost:3001/checklist/complete/645e769f32fc136c36b67ed2

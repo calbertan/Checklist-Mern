@@ -8,8 +8,6 @@ function App() {
 
   useEffect(() => {
     GetTasks();
-
-    console.log(tasks);
   }, [])
 
   const GetTasks = () => {

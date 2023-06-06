@@ -2,16 +2,22 @@ version: '3'
 
 services:
   client:
-    image: react-app
+    image: client-local
     ports:
-      - 3000:3000
+      - 80:80
+      - 443:443
+      - 2015:2015
     stdin_open: true
     depends_on:
       - api
     networks: 
       - checklist-mern
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    
   api:
-    image: node-app
+    image: api-local
     ports:
       - 3001:3001
     depends_on:
@@ -33,5 +39,9 @@ networks:
 
 volumes:
   mongo-data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
     driver: local
 

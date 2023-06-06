@@ -14,4 +14,14 @@ COPY . .
 
 EXPOSE 3001
 
-CMD ["npm", "start"]
+# CMD ["npm", "start"]
+
+# Start the custom entrypoint script when the container starts
+ENTRYPOINT ["/app/entrypoint.sh"]
+
+# Copy the entrypoint.sh script to the container
+COPY entrypoint.sh /app/entrypoint.sh
+
+# Set the execution permissions for the entrypoint script
+RUN chmod +x /app/entrypoint.sh
+

@@ -7,7 +7,7 @@ const app = express();
 app.use(express.json())
 app.use(cors())
 
-mongoose.connect("mongodb://127.0.0.1:27017/checklist-mern", {
+mongoose.connect( process.env.MONGO_URL, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })

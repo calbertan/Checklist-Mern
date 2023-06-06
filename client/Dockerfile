@@ -1,4 +1,4 @@
-FROM node:alpine
+FROM node:alpine AS build
 
 WORKDIR /usr/src/app
 
@@ -10,6 +10,13 @@ RUN npm install
 
 COPY . .
 
-EXPOSE 3000
+RUN npm run build
 
-CMD ["npm", "start"]
+### Caddy
+FROM caddy:2.4.5-alpine
+COPY Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /usr/src/app/build/ /srv
+
+EXPOSE 2015
+EXPOSE 80
+EXPOSE 443

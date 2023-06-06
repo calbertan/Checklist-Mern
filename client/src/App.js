@@ -1,10 +1,12 @@
 import {useState, useEffect} from 'react'
-const API_BASE = "http://localhost:3001"
+const API_BASE = process.env.API_URL
 
 function App() {
   const [tasks, setTasks] = useState([])
   const [popupActive, setPopupActive] = useState(false)
   const [newTask, setNewTask] = useState("")
+
+  console.log(1)
 
   useEffect(() => {
     GetTasks();
@@ -41,6 +43,7 @@ function App() {
   }
 
   const addTask = async () => {
+    console.log(2)
     const data = await fetch(API_BASE + "/checklist/new", {
       method: "POST",
       headers: {

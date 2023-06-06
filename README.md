@@ -2,10 +2,27 @@
 
 A simple MERN app that allows the user to add/remove items from their checklists. It acts as a simple starter tool that solely relies on the MERN stack without other libraries and dependencies in order to act as a simple template.
 
-The client runs on port 3000
+``IMPORTANT``
+This app has been configured for deployment to Openshift, so the changes
+will need to be made in reverse.
+
+The client runs on port 2015, hosted using Caddy
 The server/api runs on port 3001 
 
 ## Setting up local development
+When setting up for local development, here are some of the 
+lines that need to be present.
+
+/api/server.js
+```
+10  mongoose.connect("mongodb://127.0.0.1:27017/checklist-mern", {
+```
+
+/client/src/App.js
+```
+2  const API_BASE = "http://localhost:3001"
+```
+
 1. npm install in both api and client directory
 2. npm start on api, then client directory
 
@@ -20,16 +37,18 @@ npm start
 ```
 
 ## Creating Docker Images
-``IMPORTANT``
+When moving from a local to a containerized environment, it is important to make the following changes. 
 
-When moving from a local to a containerized environment, it is important to make the following changes in /api/server.js
+/api/server.js
 ```
-10  mongoose.connect("mongodb://127.0.0.1:27017/checklist-mern", {
-
-  into
-
 10 mongoose.connect("mongodb://mongo:27017/checklist-mern", {
 ```
+
+/client/src/App.js
+```
+2  const API_BASE = "http://localhost:3001"
+```
+
 
 1. After creating the Dockerfile, cd into the client folder containing the file and run the command `docker build -t react-app .`
 
@@ -62,3 +81,29 @@ running the docker-compose file can be done with the following commands
 docker-compose build
 docker-compose up
 ```
+
+## Deploying to Openshift
+There are several changes that needs to be made before deploying to
+Openshift
+
+/api/server.js
+```
+10  mongoose.connect( process.env.MONGO_URL, {
+```
+
+/client/src/App.js
+```
+2  const API_BASE = process.env.API_URL
+```
+
+In addition, an environment variable will need to be added for both the api-pod
+and the client pod, which should be callede MONGO_URL and API_URL respectively.
+Here are examples of what those environment variables should look like:
+
+```
+MONGO_URL=mongodb://dbuser:dbpass@10.96.63.220:27017/mongodb-dev
+API_URL=https://api-dev-fe805a-dev.apps.clab.devops.gov.bc.ca
+```
+
+The MONGO_URL specifically will require the user and password of the mongo pod,
+followed by the location of the mongo service.

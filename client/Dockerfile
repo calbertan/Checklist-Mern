@@ -6,7 +6,7 @@ WORKDIR /usr/src/app
 # * means install all files that start with package
 COPY ./package*.json ./
 
-RUN npm install
+RUN npm install -g npm@6
 
 COPY . .
 

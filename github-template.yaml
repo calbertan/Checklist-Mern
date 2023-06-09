@@ -19,6 +19,20 @@ objects:
     name: mern-client
     labels: 
       app: ${APP_NAME}
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    annotations:
+      descriptions: Keeps track of changes in for the client side
+    name: mongodb-3.6
+    labels: 
+      app: ${APP_NAME}
+  spec:
+    tags: 
+      - name: latest
+        from:
+          kind: DockerImage
+          name: registry.redhat.io/rhscl/mongodb-36-rhel7:latest
 
 - kind: BuildConfig
   apiVersion: build.openshift.io/v1
@@ -239,6 +253,8 @@ objects:
       template.openshift.io/expose-password: '{.data[''database-password'']}'
       template.openshift.io/expose-username: '{.data[''database-user'']}'
     name: '${DATABASE_SERVICE_NAME}'
+    labels:
+      app: ${APP_NAME}
   stringData:
     database-admin-password: '${MONGODB_ADMIN_PASSWORD}'
     database-name: '${MONGODB_DATABASE}'
@@ -250,6 +266,8 @@ objects:
     annotations:
       template.openshift.io/expose-uri: 'mongodb://{.spec.clusterIP}:{.spec.ports[?(.name=="mongo")].port}'
     name: '${DATABASE_SERVICE_NAME}'
+    labels:
+      app: ${APP_NAME}
   spec:
     ports:
       - name: mongo
@@ -270,8 +288,7 @@ objects:
       template.alpha.openshift.io/wait-for-ready: 'true'
     name: '${DATABASE_SERVICE_NAME}'
     labels:
-      app.kubernetes.io/name: mongodb
-      app.kubernetes.io/part-of: workshop
+      app: ${APP_NAME}
   spec:
     replicas: 1
     selector:
@@ -351,7 +368,7 @@ objects:
             - mongodb
           from:
             kind: ImageStreamTag
-            name: 'mongodb:${MONGODB_VERSION}'
+            name: 'mongodb-3.6'
             namespace: '${NAMESPACE}'
           lastTriggeredImage: ''
         type: ImageChange

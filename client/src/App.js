@@ -6,7 +6,7 @@ function App() {
   const [popupActive, setPopupActive] = useState(false)
   const [newTask, setNewTask] = useState("")
 
-  console.log(1)
+  console.log("connected to: " + API_BASE)
 
   useEffect(() => {
     GetTasks();
@@ -43,7 +43,7 @@ function App() {
   }
 
   const addTask = async () => {
-    console.log(2)
+    console.log("awaiting fetch from " + API_BASE)
     const data = await fetch(API_BASE + "/checklist/new", {
       method: "POST",
       headers: {

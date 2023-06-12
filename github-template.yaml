@@ -42,6 +42,154 @@ objects:
     dockerImageRepository: 'image-registry.openshift-image-registry.svc:5000/${NAMESPACE}/mongo'
     publicDockerImageRepository: image-registry.apps.clab.devops.gov.bc.ca/${NAMESPACE}/mongo
 
+### MONGO
+- kind: Secret
+  apiVersion: v1
+  metadata:
+    annotations:
+      template.openshift.io/expose-admin_password: '{.data[''database-admin-password'']}'
+      template.openshift.io/expose-database_name: '{.data[''database-name'']}'
+      template.openshift.io/expose-password: '{.data[''database-password'']}'
+      template.openshift.io/expose-username: '{.data[''database-user'']}'
+    name: '${DATABASE_SERVICE_NAME}'
+    labels:
+      app: ${APP_NAME}
+  stringData:
+    database-admin-password: '${MONGODB_ADMIN_PASSWORD}'
+    database-name: '${MONGODB_DATABASE}'
+    database-password: '${MONGODB_PASSWORD}'
+    database-user: '${MONGODB_USER}'
+- kind: Service
+  apiVersion: v1
+  metadata:
+    annotations:
+      template.openshift.io/expose-uri: 'mongodb://{.spec.clusterIP}:{.spec.ports[?(.name=="mongo")].port}'
+    name: '${DATABASE_SERVICE_NAME}'
+    labels:
+      app: ${APP_NAME}
+  spec:
+    ports:
+      - name: mongo
+        nodePort: 0
+        port: 27017
+        protocol: TCP
+        targetPort: 27017
+    selector:
+      name: '${DATABASE_SERVICE_NAME}'
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- kind: DeploymentConfig
+  apiVersion: apps.openshift.io/v1
+  metadata:
+    annotations:
+      template.alpha.openshift.io/wait-for-ready: 'true'
+    name: mongodb
+    labels:
+      app: ${APP_NAME}
+  spec:
+    strategy:
+      type: Recreate
+      recreateParams:
+        timeoutSeconds: 600
+      resources: {}
+      activeDeadlineSeconds: 21600
+    triggers:
+      - type: ImageChange
+        imageChangeParams:
+          automatic: true
+          containerNames:
+            - mongodb
+          from:
+            kind: ImageStreamTag
+            namespace: openshift
+            name: 'mongodb:3.6'
+          lastTriggeredImage: >-
+            image-registry.openshift-image-registry.svc:5000/openshift/mongodb
+      - type: ConfigChange
+    replicas: 1
+    revisionHistoryLimit: 10
+    test: false
+    selector:
+      name: mongodb
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          name: mongodb
+      spec:
+        volumes:
+          - name: mongodb-data
+            emptyDir: {}
+        containers:
+          - resources:
+              limits:
+                memory: 100Mi
+            readinessProbe:
+              exec:
+                command:
+                  - /bin/sh
+                  - '-i'
+                  - '-c'
+                  - >-
+                    mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p
+                    $MONGODB_PASSWORD --eval="quit()"
+              initialDelaySeconds: 3
+              timeoutSeconds: 1
+              periodSeconds: 10
+              successThreshold: 1
+              failureThreshold: 3
+            terminationMessagePath: /dev/termination-log
+            name: mongodb
+            livenessProbe:
+              tcpSocket:
+                port: 27017
+              initialDelaySeconds: 30
+              timeoutSeconds: 1
+              periodSeconds: 10
+              successThreshold: 1
+              failureThreshold: 3
+            env:
+              - name: MONGODB_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: '${DATABASE_SERVICE_NAME}'
+                    key: database-user
+              - name: MONGODB_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: '${DATABASE_SERVICE_NAME}'
+                    key: database-password
+              - name: MONGODB_ADMIN_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: '${DATABASE_SERVICE_NAME}'
+                    key: database-admin-password
+              - name: MONGODB_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: '${DATABASE_SERVICE_NAME}'
+                    key: database-name
+            securityContext:
+              capabilities: {}
+              privileged: false
+            ports:
+              - containerPort: 27017
+                protocol: TCP
+            imagePullPolicy: IfNotPresent
+            volumeMounts:
+              - name: mongodb-data
+                mountPath: /var/lib/mongodb/data
+            terminationMessagePolicy: File
+            image: >-
+              image-registry.openshift-image-registry.svc:5000/openshift/mongodb
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        securityContext: {}
+        schedulerName: default-scheduler
+
 - kind: BuildConfig
   apiVersion: build.openshift.io/v1
   metadata:
@@ -141,6 +289,27 @@ objects:
             image:  image-registry.openshift-image-registry.svc:5000/fe805a-prod/mern-client
             ports:
               - containerPort: 3001
+            env:
+              - name: DATABASE_SERVICE_NAME
+                value: ${DATABASE_SERVICE_NAME}
+              - name: MONGODB_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: '${DATABASE_SERVICE_NAME}'
+                    key: database-user
+              - name: MONGODB_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: '${DATABASE_SERVICE_NAME}'
+                    key: database-password
+              - name: MONGODB_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: '${DATABASE_SERVICE_NAME}'
+                    key: database-name
+              - name: MONGO_URL
+                value: mongodb://$(MONGODB_USER):$(MONGODB_PASSWORD)@$(DATABASE_SERVICE_NAME):27017/$(MONGODB_DATABASE)
+
 
 - kind: NetworkPolicy
   apiVersion: networking.k8s.io/v1
@@ -251,154 +420,7 @@ objects:
       targetPort: 2015-tcp
   wildcardPolicy: none
 
-### MONGO
-- kind: Secret
-  apiVersion: v1
-  metadata:
-    annotations:
-      template.openshift.io/expose-admin_password: '{.data[''database-admin-password'']}'
-      template.openshift.io/expose-database_name: '{.data[''database-name'']}'
-      template.openshift.io/expose-password: '{.data[''database-password'']}'
-      template.openshift.io/expose-username: '{.data[''database-user'']}'
-    name: '${DATABASE_SERVICE_NAME}'
-    labels:
-      app: ${APP_NAME}
-  stringData:
-    database-admin-password: '${MONGODB_ADMIN_PASSWORD}'
-    database-name: '${MONGODB_DATABASE}'
-    database-password: '${MONGODB_PASSWORD}'
-    database-user: '${MONGODB_USER}'
-- kind: Service
-  apiVersion: v1
-  metadata:
-    annotations:
-      template.openshift.io/expose-uri: 'mongodb://{.spec.clusterIP}:{.spec.ports[?(.name=="mongo")].port}'
-    name: '${DATABASE_SERVICE_NAME}'
-    labels:
-      app: ${APP_NAME}
-  spec:
-    ports:
-      - name: mongo
-        nodePort: 0
-        port: 27017
-        protocol: TCP
-        targetPort: 27017
-    selector:
-      name: '${DATABASE_SERVICE_NAME}'
-    sessionAffinity: None
-    type: ClusterIP
-  status:
-    loadBalancer: {}
 
-- kind: DeploymentConfig
-  apiVersion: apps.openshift.io/v1
-  metadata:
-    annotations:
-      template.alpha.openshift.io/wait-for-ready: 'true'
-    name: mongodb
-    labels:
-      app: ${APP_NAME}
-  spec:
-    strategy:
-      type: Recreate
-      recreateParams:
-        timeoutSeconds: 600
-      resources: {}
-      activeDeadlineSeconds: 21600
-    triggers:
-      - type: ImageChange
-        imageChangeParams:
-          automatic: true
-          containerNames:
-            - mongodb
-          from:
-            kind: ImageStreamTag
-            namespace: openshift
-            name: 'mongodb:3.6'
-          lastTriggeredImage: >-
-            image-registry.openshift-image-registry.svc:5000/openshift/mongodb
-      - type: ConfigChange
-    replicas: 1
-    revisionHistoryLimit: 10
-    test: false
-    selector:
-      name: mongodb
-    template:
-      metadata:
-        creationTimestamp: null
-        labels:
-          name: mongodb
-      spec:
-        volumes:
-          - name: mongodb-data
-            emptyDir: {}
-        containers:
-          - resources:
-              limits:
-                memory: 100Mi
-            readinessProbe:
-              exec:
-                command:
-                  - /bin/sh
-                  - '-i'
-                  - '-c'
-                  - >-
-                    mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p
-                    $MONGODB_PASSWORD --eval="quit()"
-              initialDelaySeconds: 3
-              timeoutSeconds: 1
-              periodSeconds: 10
-              successThreshold: 1
-              failureThreshold: 3
-            terminationMessagePath: /dev/termination-log
-            name: mongodb
-            livenessProbe:
-              tcpSocket:
-                port: 27017
-              initialDelaySeconds: 30
-              timeoutSeconds: 1
-              periodSeconds: 10
-              successThreshold: 1
-              failureThreshold: 3
-            env:
-              - name: MONGODB_USER
-                valueFrom:
-                  secretKeyRef:
-                    name: '${DATABASE_SERVICE_NAME}'
-                    key: database-user
-              - name: MONGODB_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: '${DATABASE_SERVICE_NAME}'
-                    key: database-password
-              - name: MONGODB_ADMIN_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: '${DATABASE_SERVICE_NAME}'
-                    key: database-admin-password
-              - name: MONGODB_DATABASE
-                valueFrom:
-                  secretKeyRef:
-                    name: '${DATABASE_SERVICE_NAME}'
-                    key: database-name
-            securityContext:
-              capabilities: {}
-              privileged: false
-            ports:
-              - containerPort: 27017
-                protocol: TCP
-            imagePullPolicy: IfNotPresent
-            volumeMounts:
-              - name: mongodb-data
-                mountPath: /var/lib/mongodb/data
-            terminationMessagePolicy: File
-            image: >-
-              image-registry.openshift-image-registry.svc:5000/openshift/mongodb
-        restartPolicy: Always
-        terminationGracePeriodSeconds: 30
-        dnsPolicy: ClusterFirst
-        securityContext: {}
-        schedulerName: default-scheduler
 
 parameters:
 - name: APP_NAME

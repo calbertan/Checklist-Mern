@@ -1,5 +1,6 @@
 import {useState, useEffect} from 'react'
-const API_BASE = process.env.REACT_APP_API_URL
+import config from './config'
+const API_BASE = config.API_URL
 
 console.log(process.env.REACT_APP_API_URL)
 

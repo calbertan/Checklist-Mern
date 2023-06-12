@@ -1,6 +1,9 @@
 import {useState, useEffect} from 'react'
 const API_BASE = process.env.API_URL
 
+console.log(process.env.API_URL)
+console.log($API_URL)
+
 function App() {
   const [tasks, setTasks] = useState([])
   const [popupActive, setPopupActive] = useState(false)

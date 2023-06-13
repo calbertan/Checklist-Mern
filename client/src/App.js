@@ -2,7 +2,7 @@ import {useState, useEffect} from 'react'
 import config from './config'
 const API_BASE = config.API_URL
 
-console.log(process.env.REACT_APP_API_URL)
+console.log(API_BASE)
 
 function App() {
   const [tasks, setTasks] = useState([])

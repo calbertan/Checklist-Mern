@@ -19,5 +19,3 @@ COPY Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /usr/src/app/build/ /srv
 
 EXPOSE 2015
-EXPOSE 80
-EXPOSE 443

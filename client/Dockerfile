@@ -6,8 +6,6 @@ WORKDIR /usr/src/app
 # * means install all files that start with package
 COPY ./package*.json ./
 
-ENV REACT_APP_API_URL=default
-
 RUN npm install -g npm@6
 RUN npm i -react-scripts
 

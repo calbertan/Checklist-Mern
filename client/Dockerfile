@@ -15,7 +15,14 @@ RUN npm run build
 
 ### Caddy
 FROM caddy:2.4.5-alpine
-COPY Caddyfile /etc/caddy/Caddyfile
-COPY --from=build /usr/src/app/build/ /srv
+RUN mkdir /srv/www
+COPY Caddyfile /srv/www
+RUN caddy fmt /srv/www/Caddyfile --overwrite
+COPY --from=build /usr/src/app/build/ /srv/www
+COPY config.js /srv/www
 
+# RUN caddy 
+RUN chmod -R 775 /srv/*
 EXPOSE 2015
+
+CMD ["/usr/bin/caddy", "run", "--config", "/srv/www/Caddyfile"]
